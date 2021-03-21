@@ -1,0 +1,288 @@
+version: 2.1
+
+executors:
+  node:
+    docker:
+      - image: circleci/node:13.8.0
+  python:
+    docker:
+      - image: python:3.9.0-alpine
+  aws:
+    docker:
+      - image: amazon/aws-cli
+
+commands:
+  destroy_environment:
+    description: Destroy Cloud Formation Stacks and infrastructure
+    parameters:
+      when:
+        type: string
+      id:
+        type: string
+    steps:
+      - run:
+          name: Destroy capstone network stack
+          command: |
+            aws cloudformation delete-stack --stack-name capstone-network-<< parameters.id >>
+          environment:
+            TERM: xterm-256color
+          when: << parameters.when >>
+      - run:
+          name: Destroy capstone EKS stack
+          command: |
+            aws s3 rm s3://capstone-<< parameters.id >> --recursive
+            aws cloudformation delete-stack --stack-name capstone-EKS-<< parameters.id >>
+          environment:
+            TERM: xterm-256color
+          when: << parameters.when >>
+
+jobs:
+  install-dependencies:
+    executor: python
+    steps:
+      - checkout
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            make install
+            wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+            chmod +x /bin/hadolint
+      - run:
+          name: run lint
+          command: |
+            . venv/bin/activate
+            make lint
+      - run:
+          name: Install mongo
+          command: |
+            sudo curl -L "https://github.com/docker/compose/releases/download/1.28.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+
+  # scan-for-securityy:
+  #   executor: node
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: .
+  #     - run:
+  #         name: Check against security vulnerabilities
+  #         command: npm audit --audit-level=critical
+
+  local-build:
+    executor: python
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: APP Test
+          command: |
+            docker-compose -f docker-compose.yaml up -d
+
+  smoke-test:
+    executor: python
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: APP Test
+          command: |
+            pytest tests/test_std.py
+
+  deploy-infrastructure:
+    executor: aws
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: yum install -y tar gzip
+      - run:
+          name: Deploy network infrastructure
+          working_directory: ./cloudformation
+          command: |
+            aws cloudformation create-stack --stack-name capstone-project-${CIRCLE_WORKFLOW_ID:0:7} \
+              --template-body file://network.yaml \
+              --parameters file://network-parameters.json \
+              --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM" \
+              --region=us-east-1
+              --tags project=capstone-network-${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Deploy EKS infrastructure
+          working_directory: ./cloudformation
+          command: |
+            aws cloudformation create-stack --stack-name capstone-EKS-${CIRCLE_WORKFLOW_ID:0:7} \
+              --template-body file://cluster.yaml \
+              --parameters file://cluster-parameters.json \
+              --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM" \
+              --region=us-east-1
+              --tags project=capstone-eks-${CIRCLE_WORKFLOW_ID:0:7}
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
+
+  # configure-infrastructure:
+  #   executor: python
+  #   steps:
+  #     - checkout
+  #     - add_ssh_keys:
+  #         fingerprints: ["99:21:a3:21:e0:c5:ba:a6:b9:1a:b7:9a:17:83:0e:41"]
+  #     - attach_workspace:
+  #         at: .
+  #     - run:
+  #         name: Install dependencies
+  #         working_directory: ./.circleci/ansible
+  #         command: |
+  #           apk add --update ansible
+  #           ansible --version
+  #     - run:
+  #         name: Configure server
+  #         working_directory: ./.circleci/ansible
+  #         command: |
+  #           pwd &&
+  #           ls -la
+  #           cat inventory
+  #           ansible-playbook -i inventory configure-server.yml
+  #     - destroy_environment:
+  #         id: ${CIRCLE_WORKFLOW_ID:0:7}
+  #         when: on_fail
+
+  deploy-to-cluster:
+    executor: python -- start looking from here
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install AWS CLI dependencies
+          working_directory: /tmp
+          command: |
+            sudo apt-get update && sudo apt-get install -yy less
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+      - run:
+          name: Setup the config
+          working_directory: $HOME
+          command: |
+            mkdir .kube && touch .kube/config-aws
+            aws eks --region us-west-2 update-kubeconfig --kubeconfig .kube/config-aws --name EKSCluster
+            kubectl --kubeconfig=.kube/config-aws get svc
+      - run:
+          name: Deploy APP stack
+          working_directory: .
+          command: |
+            kubectl --kubeconfig=.kube/config-aws apply -f .kube/deployment.yaml
+      - run:
+          name: Deploy Load Balancer
+          working_directory: .
+          command: |
+            kubectl --kubeconfig=.kube/config-aws apply -f .kube/loadbalancer.yaml
+      - run:
+          name: Deploy APP stack
+          working_directory: .
+          command: |
+            kubectl --kubeconfig=.kube/config-aws get services
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
+
+  # cloudfront-update:
+  #   executor: aws
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           yum install -y tar gzip curl
+  #           curl -sL https://rpm.nodesource.com/setup_10.x | bash -
+  #           yum install -y nodejs
+  #     - run:
+  #         name: Store old WorkflowID in memstash for cleanup phase
+  #         working_directory: ./.circleci/files
+  #         command: |
+  #           WorkflowID=$(aws cloudformation \
+  #             list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+  #             --no-paginate --output text)
+  #           echo "$WorkflowID"
+  #           curl -H "Content-Type: text/plain" -H "token: 1513db3b-15be-4750-bae6-3a8d32dd6de2" --request PUT --data "$WorkflowID" https://api.memstash.io/values/WorkflowID
+  #     - run:
+  #         name: Update cloudfront distribution
+  #         working_directory: ./.circleci/files
+  #         command: |
+  #           aws cloudformation deploy \
+  #             --template-file cloudfront.yml \
+  #             --stack-name udapeople-cloudfront-production \
+  #             --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
+  #             --tags project=udapeople
+  #     - revert_migrations:
+  #         id: ${CIRCLE_WORKFLOW_ID:0:7}
+  #         when: on_fail
+  # cleanup:
+  #   executor: aws
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Clean up old environment
+  #         command: |
+  #           OldWorkflowID=$(curl -H "token: 1513db3b-15be-4750-bae6-3a8d32dd6de2" --request GET https://api.memstash.io/values/WorkflowID)
+  #           CurrentWorkflowID=${CIRCLE_WORKFLOW_ID:0:7}
+  #           if [[ "$CurrentWorkflowID" != "$OldWorkflowID" ]]
+  #           then
+  #             echo "$OldWorkflowID!=$CurrentWorkflowID => will delete old version"
+  #             aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+  #             aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+  #             aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+  #           else
+  #             echo "$OldWorkflowID==$CurrentWorkflowID => nothing needs to be done..."
+  #           fi
+  #         environment:
+  #           TERM: xterm-256color
+
+workflows:
+  default:
+    jobs:
+      ## Install Dependencies
+      - install-dependencies
+
+      ## Build and test
+      - local-build:
+          requires:
+            - install-dependencies
+      - smoke-test:
+          requires:
+            - local-build
+
+      ## Test
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
+
+      ## Deploy Infra
+      - deploy-infrastructure:
+          requires:
+            - smoke-test
+          filters:
+            branches:
+              only: [master]
+      - deploy-to-cluster:
+          requires: [deploy-infrastructure]
+      # - run-migrations:
+      #     requires: [configure-infrastructure]
+      # - deploy-frontend:
+      #     requires: [run-migrations]
+      # - deploy-backend:
+      #     requires: [run-migrations]
+      # - smoke-test:
+      #     requires: [deploy-backend, deploy-frontend]
+      # - cloudfront-update:
+      #     requires: [smoke-test]
+      # - cleanup:
+      #     requires: [cloudfront-update]

@@ -38,7 +38,7 @@ commands:
 
 jobs:
   install-dependencies:
-    executor: python
+    executor: node
     steps:
       - checkout
       - run:

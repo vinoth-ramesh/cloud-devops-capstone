@@ -45,7 +45,6 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            yum groupinstall "Development Tools"
             python3 -m venv venv
             . venv/bin/activate
             make install

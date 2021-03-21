@@ -9,7 +9,7 @@ RUN groupadd flaskgroup && \
 
 COPY . /home/flask/app/std-app
 
-RUN pip install --no-cache-dir -r requirements.txt && \
+RUN pip install --no-cache-dir --no-install-recommends -r requirements.txt && \
     chown -R flask:flaskgroup /home/flask
 
 USER flask

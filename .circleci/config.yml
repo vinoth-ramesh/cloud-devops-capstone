@@ -38,13 +38,13 @@ commands:
 
 jobs:
   install-dependencies:
-    executor: node
+    executor: python
     steps:
       - checkout
       - run:
           name: install dependencies
           command: |
-            sudo yum install build-essential
+            yum groupinstall "Development Tools"
             python3 -m venv venv
             . venv/bin/activate
             make install

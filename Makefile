@@ -18,7 +18,7 @@ install:
 	curl -sSL https://get.haskellstack.org/ | sh
 	git clone https://github.com/hadolint/hadolint
 	cd hadolint
-	stack install
+	sudo stack install
 
 lint:
 	# This is linter for Dockerfiles

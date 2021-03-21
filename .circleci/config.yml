@@ -255,16 +255,6 @@ workflows:
           requires:
             - local-build
 
-      ## Test
-      - test-frontend:
-          requires: [build-frontend]
-      - test-backend:
-          requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
-
       ## Deploy Infra
       - deploy-infrastructure:
           requires:

@@ -58,7 +58,7 @@ jobs:
       - run:
           name: run lint
           command: |
-            # source ~/.capstone/bin/activate
+            source ~/.capstone/bin/activate
             make lint
       - run:
           name: Install mongo

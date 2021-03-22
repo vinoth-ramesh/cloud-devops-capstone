@@ -16,7 +16,7 @@ install:
 	#pip install --upgrade pip 
 	pip install -r requirements.txt
 	# Install hadolint
-	sudo wget -O /usr/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 && chmod +x /usr/bin/hadolint
+	sudo wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 && chmod +x ./hadolint
 	# curl -sSL https://get.haskellstack.org/ | sh
 	# git clone https://github.com/hadolint/hadolint
 	# cd hadolint
@@ -24,7 +24,7 @@ install:
 
 lint:
 	# This is linter for Dockerfiles
-	hadolint Dockerfile
+	./hadolint Dockerfile
 	# This is a linter for Python source code linter: https://www.pylint.org/
 	# This should be run from inside a virtualenv
 	pylint --disable=R,C,W1203,W1309,E0401 app.py

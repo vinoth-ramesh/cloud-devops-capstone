@@ -10,7 +10,8 @@ executors:
   python:
     docker:
       # - image: python:3.9.0-alpine
-      - image: python:3.7.3-stretch
+      # - image: python:3.7.3-stretch
+      - image: python:3.9.2-buster
   aws:
     docker:
       - image: amazon/aws-cli
@@ -42,7 +43,7 @@ commands:
 
 jobs:
   install-dependencies:
-    executor: ubuntu
+    executor: python
     steps:
       - checkout
       - run:

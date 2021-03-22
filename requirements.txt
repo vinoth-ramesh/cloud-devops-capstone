@@ -4,4 +4,3 @@ pymongo
 requests
 pylint
 pytest
-docker

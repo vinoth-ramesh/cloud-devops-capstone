@@ -51,7 +51,7 @@ jobs:
           command: |
             python3 -m venv ~/.capstone
             source ~/.capstone/bin/activate
-            # yum install docker
+            pip install docker
             make install
             systemctl start docker
             # Install hadolint

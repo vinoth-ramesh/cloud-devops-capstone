@@ -69,7 +69,7 @@ jobs:
       - run:
           name: Local Build
           command: |
-            docker-compose -f docker-compose.yaml up -d
+            docker-compose -f docker-compose.yml up -d
 
   # scan-for-securityy:
   #   executor: node

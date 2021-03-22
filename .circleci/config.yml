@@ -86,7 +86,7 @@ jobs:
       - run:
           name: APP Test
           command: |
-            docker-compose -f docker-compose.yaml up -d
+            /usr/local/bin/docker-compose -f docker-compose.yaml up -d
 
   smoke-test:
     executor: python

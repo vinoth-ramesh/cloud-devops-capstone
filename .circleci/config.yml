@@ -4,6 +4,9 @@ executors:
   node:
     docker:
       - image: circleci/node:13.8.0
+  ubuntu:
+    docker:
+      - image: ubuntu-1604:202007-01
   python:
     docker:
       # - image: python:3.9.0-alpine
@@ -39,7 +42,7 @@ commands:
 
 jobs:
   install-dependencies:
-    executor: python
+    executor: ubuntu
     steps:
       - checkout
       - run:

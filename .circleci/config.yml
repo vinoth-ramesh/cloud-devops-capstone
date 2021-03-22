@@ -66,6 +66,10 @@ jobs:
             source ~/.capstone/bin/activate
             curl -L "https://github.com/docker/compose/releases/download/1.28.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
             chmod +x /usr/local/bin/docker-compose
+      - run:
+          name: Local Build
+          command: |
+            docker-compose -f docker-compose.yaml up -d
 
   # scan-for-securityy:
   #   executor: node
@@ -77,16 +81,16 @@ jobs:
   #         name: Check against security vulnerabilities
   #         command: npm audit --audit-level=critical
 
-  local-build:
-    executor: python
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: APP Test
-          command: |
-            /usr/local/bin/docker-compose -f docker-compose.yaml up -d
+  # local-build:
+  #   executor: python
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: .
+  #     - run:
+  #         name: APP Test
+  #         command: |
+  #           /usr/local/bin/docker-compose -f docker-compose.yaml up -d
 
   smoke-test:
     executor: python
@@ -255,12 +259,9 @@ workflows:
       - install-dependencies
 
       ## Build and test
-      - local-build:
-          requires:
-            - install-dependencies
       - smoke-test:
           requires:
-            - local-build
+            - install-dependencies
 
       ## Deploy Infra
       - deploy-infrastructure:

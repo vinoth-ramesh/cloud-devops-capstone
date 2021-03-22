@@ -51,6 +51,8 @@ jobs:
           command: |
             python3 -m venv ~/.capstone
             source ~/.capstone/bin/activate
+            yum install docker
+            systemctl start docker
             make install
             # Install hadolint
             # wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\

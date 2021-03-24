@@ -54,7 +54,7 @@ jobs:
           name: Start Docker
           command: |
             source ~/.capstone/bin/activate
-            sudo systemctl start docker
+            sudo service docker start
       - run:
           name: Local Build
           command: |

@@ -60,7 +60,7 @@ jobs:
       - run:
           name: Local Build
           command: |
-            docker-compose -f docker-compose.yml up -d
+            sudo docker-compose -f docker-compose.yml up -d
 
   # local-build:
   #   executor: python

@@ -34,7 +34,7 @@ pipeline {
                 sh '''
                     docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
                     docker tag std-app:latest vinothramesh/std-app:latest
-                    docker push vinothramesh/dbz-app:latest
+                    docker push vinothramesh/std-app:latest
                 '''
             }
         }

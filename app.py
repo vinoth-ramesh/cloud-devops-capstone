@@ -12,6 +12,7 @@ app.config['MONGO_DBNAME'] = 'stddata'
 app.config['MONGO_URI'] = 'mongodb://' + os.getenv('MONGO_URI', 'localhost') + ':27017/stddata'
 mongodb = PyMongo(app)
 
+# Main file
 
 @app.route('/')
 def default_route():

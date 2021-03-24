@@ -41,11 +41,11 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            sudo -i
             python3 -m venv ~/.capstone
             source ~/.capstone/bin/activate
             make install
             sudo docker --version
+            sudo ls -l /etc/init.d/docker
       - run:
           name: Run lint
           command: |
@@ -55,7 +55,8 @@ jobs:
           name: Start Docker
           command: |
             source ~/.capstone/bin/activate
-            sudo dockerd
+            # sudo dockerd
+            sudo /etc/init.d/docker start
       - run:
           name: Local Build
           command: |

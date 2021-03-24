@@ -16,7 +16,7 @@ install:
 	#pip install --upgrade pip 
 	pip install -r requirements.txt
 	# Install hadolint
-	wget -O /usr/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 && chmod +x /usr/bin/hadolint
+	sudo wget -O /usr/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 && chmod +x /usr/bin/hadolint
 	# curl -sSL https://get.haskellstack.org/ | sh
 	# git clone https://github.com/hadolint/hadolint
 	# cd hadolint

@@ -57,6 +57,7 @@ jobs:
             # sudo dockerd
             sudo docker --version
             # sudo /etc/init.d/docker start
+      - setup_remote_docker
       - run:
           name: Local Build
           command: |

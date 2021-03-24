@@ -1,15 +1,7 @@
 version: 2.1
 
 executors:
-  node:
-    docker:
-      - image: circleci/node:13.8.0
   python:
-    docker:
-      # - image: python:3.9.0-alpine
-      # - image: python:3.7.3-stretch
-      - image: python:3.9.2-buster
-  common-image:
     docker:
       - image: cimg/python:3.9.2
   aws:
@@ -43,30 +35,26 @@ commands:
 
 jobs:
   install-dependencies:
-    executor: common-image
+    executor: python
     steps:
       - checkout
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             python3 -m venv ~/.capstone
             source ~/.capstone/bin/activate
             make install
             sudo docker --version
-            # Install hadolint
-            # wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            # chmod +x /bin/hadolint
       - run:
-          name: run lint
+          name: Run lint
           command: |
             source ~/.capstone/bin/activate
             make lint
-      # - run:
-      #     name: Install mongo
-      #     command: |
-      #       source ~/.capstone/bin/activate
-      #       curl -L "https://github.com/docker/compose/releases/download/1.28.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-      #       chmod +x /usr/local/bin/docker-compose
+      - run:
+          name: Start Docker
+          command: |
+            source ~/.capstone/bin/activate
+            sudo systemctl start docker
       - run:
           name: Local Build
           command: |
